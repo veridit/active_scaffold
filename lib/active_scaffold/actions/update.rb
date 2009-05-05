@@ -21,12 +21,12 @@ module ActiveScaffold::Actions
         type.js do
           render(:partial => 'update_form')
         end
+        edit_respond_to type if self.respond_to? :edit_respond_to
       end
     end
 
     def update
       do_update
-
       respond_to do |type|
         type.html do
           if params[:iframe]=='true' # was this an iframe post ?
@@ -52,6 +52,7 @@ module ActiveScaffold::Actions
         type.xml { render :xml => response_object.to_xml, :content_type => Mime::XML, :status => response_status }
         type.json { render :text => response_object.to_json, :content_type => Mime::JSON, :status => response_status }
         type.yaml { render :text => response_object.to_yaml, :content_type => Mime::YAML, :status => response_status }
+        update_respond_to type if self.respond_to? :update_respond_to
       end
     end
 
@@ -72,7 +73,7 @@ module ActiveScaffold::Actions
     # A complex method to update a record. The complexity comes from the support for subforms, and saving associated records.
     # If you want to customize this algorithm, consider using the +before_update_save+ callback
     def do_update
-      @record = find_if_allowed(params[:id], :update)
+      do_edit
       begin
         active_scaffold_config.model.transaction do
           @record = update_record_from_params(@record, active_scaffold_config.update.columns, params[:record])
@@ -91,7 +92,7 @@ module ActiveScaffold::Actions
     end
 
     def do_update_column
-      @record = find_if_allowed(params[:id], :update)
+      do_edit
       if @record.authorized_for?(:action => :update, :column => params[:column])
         params[:value] ||= @record.column_for_attribute(params[:column]).default unless @record.column_for_attribute(params[:column]).null
         @record.send("#{params[:column]}=", params[:value])

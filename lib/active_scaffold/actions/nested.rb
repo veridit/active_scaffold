@@ -8,8 +8,6 @@ module ActiveScaffold::Actions
         include ActiveScaffold::Actions::Nested::ChildMethods if active_scaffold_config.model.reflect_on_all_associations.any? {|a| a.macro == :has_and_belongs_to_many}
       end
       base.before_filter :include_habtm_actions
-      # TODO: it's a bit wasteful to run this routine every page load.
-      base.before_filter :links_for_associations
       base.helper_method :nested_habtm?
     end
 
@@ -19,6 +17,7 @@ module ActiveScaffold::Actions
       respond_to do |type|
         type.html { render :partial => 'nested', :layout => true }
         type.js { render :partial => 'nested' }
+        nested_respond_to type if self.respond_to? :nested_respond_to
       end
     end
 
@@ -28,36 +27,6 @@ module ActiveScaffold::Actions
     # May be overridden to customize the behavior
     def do_nested
       @record = find_if_allowed(params[:id], :read)
-    end
-
-    # Create the automatic column links. Note that this has to happen when configuration is *done*, because otherwise the Nested module could be disabled. Actually, it could still be disabled later, couldn't it?
-    # TODO: This should really be a post-config routine, instead of a before_filter.
-    def links_for_associations
-      active_scaffold_config.list.columns.each do |column|
-        # if column.link == false we won't create a link. that's how a dev can suppress the auto links.
-        if column.association and column.link.nil?
-          if column.plural_association?
-            # note: we can't create nested scaffolds on :through associations because there's no reverse association.
-            column.set_link('nested', :parameters => {:associations => column.name.to_sym}) #unless column.through_association?
-          elsif not column.polymorphic_association?
-            model = column.association.klass
-            begin
-              controller = self.class.active_scaffold_controller_for(model)
-            rescue ActiveScaffold::ControllerNotFound
-              next
-            end
-
-            actions = controller.active_scaffold_config.actions
-            action = nil
-            if actions.include? :update and column.actions_for_association_links.include? :edit and model.authorized_for? :action => :update
-              action = 'edit'
-            elsif actions.include? :show and column.actions_for_association_links.include? :show and model.authorized_for? :action => :read
-              action = 'show'
-            end
-            column.set_link(action, :controller => controller.controller_path, :parameters => {:parent_controller => params[:controller]}) if action
-          end
-        end
-      end
     end
 
     def include_habtm_actions
@@ -132,6 +101,7 @@ module ActiveScaffold::Actions::Nested
         type.js do
           render(:partial => 'add_existing_form')
         end
+        new_existing_respond_to type if self.respond_to? :new_existing_respond_to
       end
     end
 
@@ -157,6 +127,7 @@ module ActiveScaffold::Actions::Nested
         type.xml { render :xml => response_object.to_xml, :content_type => Mime::XML, :status => response_status }
         type.json { render :text => response_object.to_json, :content_type => Mime::JSON, :status => response_status }
         type.yaml { render :text => response_object.to_yaml, :content_type => Mime::YAML, :status => response_status }
+        add_existing_respond_to type if self.respond_to? :add_existing_respond_to
       end
     end
 
@@ -174,6 +145,7 @@ module ActiveScaffold::Actions::Nested
         type.xml { render :xml => successful? ? "" : response_object.to_xml, :content_type => Mime::XML, :status => response_status }
         type.json { render :text => successful? ? "" : response_object.to_json, :content_type => Mime::JSON, :status => response_status }
         type.yaml { render :text => successful? ? "" : response_object.to_yaml, :content_type => Mime::YAML, :status => response_status }
+        destroy_existing_respond_to type if self.respond_to? :destroy_existing_respond_to
       end
     end
     
