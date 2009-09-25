@@ -84,8 +84,13 @@ module ActiveScaffold::Config
     attr_writer :label
     def label(options={})
       options[:count] ||= model.count
-      options[:default] ||= model.name.pluralize if options[:count].to_i > 1
-      as_(@label, options) || model.human_name(options)
+      # Try to lookup the model name with default active_record I18n,
+      # however alter the lookup to use correct singular/plural form.
+      if @label then
+        as_(@label,options.merge(:default=>@label))
+      else
+        model.human_name(options)
+      end
     end
 
     ##
