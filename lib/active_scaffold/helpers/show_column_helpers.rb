@@ -13,8 +13,8 @@ module ActiveScaffold
         elsif column.list_ui and override_show_column_ui?(column.list_ui)
           send(override_show_column_ui(column.list_ui), column, record)
         else
-          if override_show_column_ui?(column.column.class)
-            send(override_show_column_ui(column.column.class), column, record)
+          if column.column and override_show_column_ui?(column.column.type)
+            send(override_show_column_ui(column.column.type), column, record)
           else
             get_column_value(record, column)
           end
@@ -22,7 +22,7 @@ module ActiveScaffold
       end
 
       def active_scaffold_show_text(column, record)
-        simple_format(get_column_value(record, column))
+        simple_format(clean_column_value(record.send(column.name)))
       end
 
       def show_column_override(column)
