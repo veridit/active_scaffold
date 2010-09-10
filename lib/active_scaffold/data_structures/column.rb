@@ -253,7 +253,7 @@ module ActiveScaffold::DataStructures
       @associated_number = self.class.associated_number
       @show_blank_record = self.class.show_blank_record
       @actions_for_association_links = self.class.actions_for_association_links.clone if @association
-      @search_ui = :select if @association and not polymorphic_association?
+      @search_ui = :select if @association and not polymorphic_association? and not through_association?
       @options = {:format => :i18n_number} if @column.try(:number?)
 
       # default all the configurable variables
@@ -262,7 +262,7 @@ module ActiveScaffold::DataStructures
       self.sort = true
       self.search_sql = true
 
-      self.includes = (association and not polymorphic_association?) ? [association.name] : []
+      self.includes = (association and not polymorphic_association? and not through_association?) ? [association.name] : []
     end
 
     # just the field (not table.field)
@@ -297,7 +297,7 @@ module ActiveScaffold::DataStructures
       self.search_sql = unless self.virtual?
         if association.nil?
           self.field.to_s
-        elsif !self.polymorphic_association?
+        elsif !self.polymorphic_association? and !self.through_association?
           [association.klass.table_name, association.klass.primary_key].collect! do |str|
             association.klass.connection.quote_column_name str
           end.join('.')
