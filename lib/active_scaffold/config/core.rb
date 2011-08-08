@@ -91,7 +91,13 @@ module ActiveScaffold::Config
     # a generally-applicable name for this ActiveScaffold ... will be used for generating page/section headers
     attr_writer :label
     def label(options={})
-      as_(@label, options) || model.human_name(options.merge(options[:count].to_i == 1 ? {} : {:default => model.name.pluralize}))
+      # Try to lookup the model name with default active_record I18n,
+      # however alter the lookup to use correct singular/plural form.
+      if @label then
+        as_(@label,options.merge(:default=>@label))
+      else
+        model.human_name(options)
+      end
     end
 
     # STI children models, use an array of model names
